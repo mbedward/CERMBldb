@@ -1,10 +1,21 @@
 #' Find LiDAR tiles that intersect with given features
 #'
+#' Queries the metadata tables in the database to identify LiDAR tiles that
+#' intersect with the specified features.
+#'
 #' @param db A database connection
 #'
-#' @param x A spatial object supported by the \code{sf} package (e.g. a
-#'   spatial data frame with one or more point, line or polygon features)
-#'   The object must have a coordinate reference system defined.
+#' @param x A spatial object with supported by the \code{sf} package: either an
+#'   \code{sf} data frame or a \code{sfc} geometry list. The object must have a
+#'   coordinate reference system defined. It can contain one or more point, line
+#'   or polygon features.
+#'
+#' @return A data frame with columns 'meta_table' (name of metadata table),
+#'   'srid' (spatial reference identifier / EPSG code for each matching tile,
+#'   'id' (integer tile id, specific to the particular metadata table),
+#'   'filename' (source file name for the LiDAR data),
+#'   'capture_year' (4-digit year number), 'point_density' (average density
+#'   across the tile expressed as points per square metre).
 #'
 #' @export
 #'
@@ -22,7 +33,7 @@ ldb_find_tiles <- function(db, x) {
   # If the query features are a spatial data frame
   # just take the geometry column
   if (inherits(x, "sf")) {
-    x <- st_geometry(x)
+    x <- sf::st_geometry(x)
   }
 
   # Get names of the metadata tables to query
@@ -35,11 +46,11 @@ ldb_find_tiles <- function(db, x) {
   # Query each metadata table
   #
   res <- lapply(mtbls$table_name, function(tblname) {
-    cmd <- glue::glue("select ST_SRID(geom) as srid from {tblname} limit 1;")
-
     # PostGIS ST_Intersects assumes that both sets of features have the same
     # coordinate ref system, so transform the query features if required.
     #
+    cmd <- glue::glue("select ST_SRID(geom) as srid from {tblname} limit 1;")
+
     tbl_srid <- DBI::dbGetQuery(db, cmd) %>%
       dplyr::pull(srid)
 
@@ -48,7 +59,7 @@ ldb_find_tiles <- function(db, x) {
     if (sf::st_crs(x) == tbl_crs) {
       xwkt <- sf::st_as_text(x, EWKT=TRUE)
     } else {
-      xwkt <- sf::st_as_text( st_transform(x, tbl_crs), EWKT=TRUE )
+      xwkt <- sf::st_as_text( sf::st_transform(x, tbl_crs), EWKT=TRUE )
     }
 
     # Do the intersection query
