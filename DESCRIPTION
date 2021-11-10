@@ -1,0 +1,30 @@
+Package: CERMBldb
+Type: Package
+Title: Store and retrieve rasterized LiDAR data from a PostGIS database
+Version: 0.1.0
+Date: 2021-11-10
+Authors@R: c(
+  person("Michael", "Bedward", role = c("aut", "cre"), email = "michael.bedward@gmail.com")
+  )
+Description: This package extends the CERMBlidar package with functions to work
+  with data derived from LIDAR images via a PostGIS database. It is being
+  developed for the Centre for Environmental Risk Management of Bushfires, 
+  University of Wollongong (UOW), Australia. The package may be freely used by 
+  anyone, but please note that: (1) Some functions are particular to data 
+  conventions used by New South Wales State Government and UOW and might not be
+  suitable for general use (2) The package is at an early stage of development 
+  and features are likely to change without notice between successive 0.x 
+  versions.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 4.0.0),
+  DBI,
+  RPostgres
+Imports: dplyr,
+  glue,
+  magrittr,
+  sf
+RoxygenNote: 7.1.1
+VignetteBuilder: knitr
+
