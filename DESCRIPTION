@@ -20,10 +20,14 @@ Encoding: UTF-8
 LazyData: true
 Depends: R (>= 4.0.0),
   DBI,
-  RPostgres
+  RPostgres,
+  CERMBlidar (>= 0.3.2)
 Imports: dplyr,
+  fs,
   glue,
+  lubridate,
   magrittr,
-  sf
+  sf,
+  stringr
 RoxygenNote: 7.1.2
 VignetteBuilder: knitr

@@ -111,11 +111,11 @@ ldb_load_tile_metadata <- function(db,
     ST_GeomFromText('{wkt}', {epsgcode}) );
     ")
 
-  pool::dbExecute(db, command)
+  DBI::dbExecute(db, command)
 
   # Return id value of the record just created
-  cmd <- glue::glue("select id from {tblname} where filename = '{filename}'")
-  res <- dbGetQuery(db, cmd)
+  cmd <- glue::glue("select id from {tblname} where filename = '{filename}';")
+  res <- DBI::dbGetQuery(db, cmd)
 
   res$id[1]
 }

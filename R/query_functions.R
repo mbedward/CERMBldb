@@ -36,10 +36,12 @@ ldb_find_tiles <- function(db, x) {
     x <- sf::st_geometry(x)
   }
 
-  # Get names of the metadata tables to query
+  # Get names of the metadata tables to query. Note: we exclude
+  # the 'metadata_combined' table.
   #
   cmd <- glue::glue("select table_name from information_schema.tables
-                     where table_schema = 'lidar' and table_name ~* '^metadata';")
+                     where table_schema = 'lidar' and
+                       table_name ~* '^metadata_((?!combined).)*$';")
 
   mtbls <- DBI::dbGetQuery(db, cmd)
 
