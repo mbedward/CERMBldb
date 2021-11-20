@@ -27,12 +27,12 @@
 #'
 #' @export
 #'
-db_load_tile_metadata <- function(db,
-                                  las,
-                                  filename,
-                                  mapname = NULL,
-                                  provider = "nsw_ss",
-                                  purpose = "general") {
+ldb_load_tile_metadata <- function(db,
+                                   las,
+                                   filename,
+                                   mapname = NULL,
+                                   provider = "nsw_ss",
+                                   purpose = "general") {
 
   if (!ldb_is_connected(db)) stop("Database connection is not open")
 
@@ -143,3 +143,19 @@ pg_table_exists <- function(db, tablename) {
   res$exists
 }
 
+
+# Private helper to format a time stamp to include the time zone
+# (used by ldb_load_tile_metadata)
+.tformat <- function(timestamp, tz = "UTC") {
+  if (inherits(timestamp, c("POSIXt", "Date"))) {
+    x <- timestamp
+  } else if (inherits(timestamp, "character")) {
+    x <- lubridate::parse_date_time(timestamp,
+                                    orders = c("ymd", "ymd H", "ymd HM", "ymd HMS"),
+                                    tz=tz)
+  } else {
+    stop("Argument timestamp should be POSIXt, Date, character")
+  }
+
+  format(timestamp, format = "%Y-%m-%d %H:%M:%S", usetz = TRUE)
+}
