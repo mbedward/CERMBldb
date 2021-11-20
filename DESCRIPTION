@@ -1,8 +1,8 @@
 Package: CERMBldb
 Type: Package
-Title: Store and retrieve rasterized LiDAR data from a PostGIS database
-Version: 0.1.0
-Date: 2021-11-10
+Title: Functions to manage a PostGIS database containing data derived from airborne LiDAR
+Version: 0.1.1
+Date: 2021-11-20
 Authors@R: c(
   person("Michael", "Bedward", role = c("aut", "cre"), email = "michael.bedward@gmail.com")
   )
@@ -25,6 +25,5 @@ Imports: dplyr,
   glue,
   magrittr,
   sf
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 VignetteBuilder: knitr
-
