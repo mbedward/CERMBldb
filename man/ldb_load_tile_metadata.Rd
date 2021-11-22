@@ -19,7 +19,9 @@ administrator rights to the database.}
 
 \item{las}{A LAS object.}
 
-\item{filename}{Path or filename from which the LAS object was read.}
+\item{filename}{Path or file name from which the LAS object was read. Only
+the file name, minus any preceding path elements and/or extension, will be
+written to the metadata table.}
 
 \item{mapname}{Name of the map sheet (assumed to be 100k topographic map) to
 assign to this LAS tile. If \code{NULL} (the default), the map name will be
@@ -38,6 +40,62 @@ The integer value of the \code{'id'} field for the newly created
   database record.
 }
 \description{
-This function extracts meta-data values from the given LAS object and
-writes them to the database. The values are:
+This function extracts meta-data values from the given LAS object and writes
+them as a new record in one of the database's meta-data tables. The LAS
+object must have a valid coordinate reference system defined that can be
+retrieved using the function \code{st_crs} from the \code{'sf'} package. The
+CRS will be used to select which meta-data table the record should be written
+to. For example, meta-data for a LAS tile projected in MGA Zone 56 / GDA94
+(EPSG code 28356) would be written to the table
+\code{'lidar.metadata_gda94_zone56'}. The function returns an error if either
+no corresponding meta-data table exists in the database, or the table exists
+but already contains a record for the LAS tile.
+}
+\details{
+The values are:
+\describe{
+  \item{provider}{Standard abbreviation for the LiDAR data data provider (
+    specified as a function argument).}
+  \item{purpose}{Purpose for which LiDAR data was collected (specified as a
+    function argument that defaults to 'general').}
+  \item{filename}{File name of the LAS data file (specified as a function
+    argument).}
+  \item{mapname}{Name of the 1:100,000 map sheet containing the data centroid
+    (can be specified as a function argument or will be inferred from the
+    file name).}
+  \item{area_m2}{Area of the bounding rectangle in square metres.}
+  \item{capture_year}{Four digit integer year number.}
+  \item{capture_start}{Time stamp (GMT/UCT) of the minimum GPS point time.}
+  \item{capture_end}{Time stamp (GMT/UCT) of the maximum GPS point time.}
+  \item{nflightlines}{Number of flight lines within the data.}
+  \item{npts_ground}{Number of points classified as ground (class 2).}
+  \item{npts_veg}{Number of points classified as vegetation (classes 3-5).}
+  \item{npts_water}{Number of points classified as water (class 9).}
+  \item{npts_other}{Number of points in other classes (e.g. class 6 buildings).}
+  \item{point_density}{Average point density per square metre.}
+  \item{bounds}{Bounding rectangle aligned with coordinate reference system axes.}
+}
+}
+\examples{
+\dontrun{
+# Connect to the database as a user with administrator rights
+db <- DBI::dbConnect(RPostgres::Postgres(),
+                     dbname = "cermb_lidar",
+                     host = "some.hostname",
+                     user = "postgres",
+                     pasword = "some.password")
+
+# Assuming that 'las' is a LAS object, e.g. imported using
+# CERMBlidar::prepare_tile(), and pre-processed to normalize point
+# heights and remove any flight line overlap imbalance between
+# point classes.
+
+ldb_load_tile_metadata(
+  db,
+  las,
+  filename = "F:/LAS/Wollongong201304-LID1-C3-AHD_3046190_56_0002_0002.zip"
+)
+
+}
+
 }
