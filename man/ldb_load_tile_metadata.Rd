@@ -14,8 +14,8 @@ ldb_load_tile_metadata(
 )
 }
 \arguments{
-\item{db}{An open database connection. For this function, the user must have
-administrator rights to the database.}
+\item{db}{An open database connection for a user with administrator rights
+to the database.}
 
 \item{las}{A LAS object.}
 
@@ -81,7 +81,7 @@ The values are:
 # Connect to the database as a user with administrator rights
 db <- DBI::dbConnect(RPostgres::Postgres(),
                      dbname = "cermb_lidar",
-                     host = "some.hostname",
+                     host = "some.host",
                      user = "postgres",
                      pasword = "some.password")
 

@@ -1,8 +1,8 @@
 Package: CERMBldb
 Type: Package
 Title: Functions to manage a PostGIS database containing data derived from airborne LiDAR
-Version: 0.1.1
-Date: 2021-11-22
+Version: 0.1.3
+Date: 2021-11-24
 Authors@R: c(
   person("Michael", "Bedward", role = c("aut", "cre"), email = "michael.bedward@gmail.com")
   )
