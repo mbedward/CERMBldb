@@ -93,7 +93,7 @@ ldb_load_tile_metadata <- function(db,
 
   if (!ldb_is_connected(db)) stop("Database connection is not open")
 
-  las.crs <- sf::st_crs(las)
+  las.crs <- CERMBlidar::get_horizontal_crs(las)
   bounds <- CERMBlidar::get_las_bounds(las, "sf")
 
   if (is.na(las.crs)) {
