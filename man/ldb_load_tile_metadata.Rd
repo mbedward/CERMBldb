@@ -41,15 +41,9 @@ The integer value of the \code{'id'} field for the newly created
 }
 \description{
 This function extracts meta-data values from the given LAS object and writes
-them as a new record in one of the database's meta-data tables. The LAS
+them as a new record in the 'lidar.metadata' database table. The LAS
 object must have a valid coordinate reference system defined that can be
-retrieved using the function \code{st_crs} from the \code{'sf'} package. The
-CRS will be used to select which meta-data table the record should be written
-to. For example, meta-data for a LAS tile projected in MGA Zone 56 / GDA94
-(EPSG code 28356) would be written to the table
-\code{'lidar.metadata_gda94_zone56'}. The function returns an error if either
-no corresponding meta-data table exists in the database, or the table exists
-but already contains a record for the LAS tile.
+retrieved using the function \code{st_crs} from the \code{'sf'} package.
 }
 \details{
 The values are:

@@ -9,7 +9,7 @@ fn_load_raster(
   raster_url,
   strata_def = "cermb",
   raster_crs = NULL,
-  metadata_id = NULL,
+  tile_id = NULL,
   protocol = "vsicurl",
   tilew = 256,
   R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
@@ -37,10 +37,9 @@ relevant meta-data and raster tables in the database. If \code{NULL}
 (default), the function will attempt to retrieve the CRS from the raster
 file.}
 
-\item{metadata_id}{Integer ID for the associated record in the meta-data table
-associated with the destination raster table. If \code{NULL} (default),
-the function will search for a meta-data record based on the file name of
-the input raster.}
+\item{tile_id}{Integer ID for the corresponding existing record in the
+'metadata' table. If \code{NULL} (default), the function will search for a
+meta-data record based on the file name of the input raster.}
 
 \item{protocol}{The name of a GDAL-supported virtual file system protocol
 to use when accessing the raster file from storage. The default is
@@ -65,8 +64,9 @@ from the database connection object.}
 
 \item{password}{User password. If \code{NULL}, this will automatically fall
 back to the user's \code{pgpass.conf} file, if one exists, or the
-\code{PGPASSWORD} environment variable. On a Windows client, the \code{pgpass.conf} file
-in the directlry \code{~/AppData/Roaming/postgresql}.}
+\code{PGPASSWORD} environment variable. On a Windows client, the
+\code{pgpass.conf} file in the directory
+\code{~/AppData/Roaming/postgresql}.}
 
 \item{user}{User name. If \code{NULL} (default), will be determined from the
 database connection object.}

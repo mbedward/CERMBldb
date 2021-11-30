@@ -1,15 +1,9 @@
 #' Import LAS tile metadata into the database
 #'
 #' This function extracts meta-data values from the given LAS object and writes
-#' them as a new record in one of the database's meta-data tables. The LAS
+#' them as a new record in the 'lidar.metadata' database table. The LAS
 #' object must have a valid coordinate reference system defined that can be
-#' retrieved using the function \code{st_crs} from the \code{'sf'} package. The
-#' CRS will be used to select which meta-data table the record should be written
-#' to. For example, meta-data for a LAS tile projected in MGA Zone 56 / GDA94
-#' (EPSG code 28356) would be written to the table
-#' \code{'lidar.metadata_gda94_zone56'}. The function returns an error if either
-#' no corresponding meta-data table exists in the database, or the table exists
-#' but already contains a record for the LAS tile.
+#' retrieved using the function \code{st_crs} from the \code{'sf'} package.
 #'
 #' The values are:
 #' \describe{
@@ -94,7 +88,6 @@ ldb_load_tile_metadata <- function(db,
   if (!ldb_is_connected(db)) stop("Database connection is not open")
 
   las.crs <- CERMBlidar::get_horizontal_crs(las)
-  bounds <- CERMBlidar::get_las_bounds(las, "sf")
 
   if (is.na(las.crs)) {
     stop("Cannot determine the coordinate reference system for the LAS object")
@@ -102,15 +95,26 @@ ldb_load_tile_metadata <- function(db,
 
   epsgcode <- las.crs$epsg
 
-  # Infer the database metadata table name from the LAS CRS
+  # Check that this projection is supported by the database
+  cmd <- glue::glue("select exists (
+                       select 1 from supported_crs
+                       where srid = {epsgcode} );")
+
+  res <- dbGetQuery(db, cmd)
+  if (!res$exists[1]) {
+    msg <- glue::glue("The LiDAR tile coordinate reference system (EPSG:{epsgcode})
+                       is not (yet) supported by the database.")
+    stop(msg)
+  }
+
+  # Get the datum and zone from the LAS CRS
   crs_wkt <- sf::st_as_text(las.crs)
   x <- stringr::str_extract(crs_wkt, "PROJCS[^\\,]+")
 
-  gda <- stringr::str_extract(x, stringr::regex("GDA\\d+", ignore_case = TRUE))
-  if (is.na(gda)) {
+  datum <- stringr::str_extract(x, stringr::regex("GDA\\d+", ignore_case = TRUE))
+  if (is.na(datum)) {
     stop("Cannot determine GDA code for coordinate reference system")
   }
-  gda <- tolower(gda)
 
   zone <- stringr::str_extract(x, stringr::regex("zone\\s*\\d+", ignore_case = TRUE)) %>%
     stringr::str_extract("\\d+")
@@ -119,14 +123,22 @@ ldb_load_tile_metadata <- function(db,
     stop("Cannot determine MGA map zone for coordinate reference system")
   }
 
-  tblname <- glue::glue("metadata_{gda}_zone{zone}")
+  # Get the tile bounds in its native CRS coordinates
+  bounds <- CERMBlidar::get_las_bounds(las, "sf")
 
-  if (!pg_table_exists(db, tblname)) {
-    msg <- glue::glue("Require meta-data table {tblname}, as inferred from
-                      the coordinate reference system of the LAS object,
-                      but it does not exist in the database.")
+  # Reproject bounds into the CRS used by the metadata table
+  cmd <- "select Find_SRID('lidar', 'metadata', 'geom') AS srid;"
+  res <- dbGetQuery(db, cmd)
+
+  if (nrow(res) != 1) {
+    msg <- glue::glue("Something really bad has happened!!!
+                       Unable to determine the projection for the metadata table.
+                       This suggests that the database might have been corrupted.")
     stop(msg)
   }
+
+  metadata_epsg <- res$srid;
+  bounds_reproj <- sf::st_transform(bounds, metadata_epsg)
 
   filename <- filename %>%
     fs::path_file() %>%
@@ -144,13 +156,14 @@ ldb_load_tile_metadata <- function(db,
 
   nflightlines <- length(unique(las@data$flightlineID))
 
-  wkt <- sf::st_as_text(bounds)
+  wkt <- sf::st_as_text(bounds_reproj, EWKT = TRUE)
   area <- sf::st_area(bounds)
 
   command <- glue::glue(
-    "insert into {tblname} \\
-    (provider, purpose,
-     filename, mapname,
+    "insert into metadata \\
+    (filename, datum, zone,
+     provider, purpose,
+     mapname,
      area_m2,
      capture_year, capture_start, capture_end,
      nflightlines,
@@ -158,9 +171,11 @@ ldb_load_tile_metadata <- function(db,
      point_density,
      geom)
     values (
+    '{filename}',
+    '{datum}',
+    {zone},
     '{provider}',
     '{purpose}',
-    '{filename}',
     '{mapname}',
     {area},
     {capture_year},
@@ -172,16 +187,13 @@ ldb_load_tile_metadata <- function(db,
     {pcounts$water},
     {pcounts$building + pcounts$other},
     {ptotal / area},
-    ST_GeomFromText('{wkt}', {epsgcode}) );
+    ST_GeomFromText('{wkt}') ) returning tile_id;
     ")
 
-  DBI::dbExecute(db, command)
+  res <- DBI::dbGetQuery(db, command)
 
-  # Return id value of the record just created
-  cmd <- glue::glue("select id from {tblname} where filename = '{filename}';")
-  res <- DBI::dbGetQuery(db, cmd)
-
-  res$id[1]
+  # Return tile_id value of the record just created
+  res$tile_id[1]
 }
 
 
@@ -217,10 +229,9 @@ ldb_load_tile_metadata <- function(db,
 #'   (default), the function will attempt to retrieve the CRS from the raster
 #'   file.
 #'
-#' @param metadata_id Integer ID for the associated record in the meta-data table
-#'   associated with the destination raster table. If \code{NULL} (default),
-#'   the function will search for a meta-data record based on the file name of
-#'   the input raster.
+#' @param tile_id Integer ID for the corresponding existing record in the
+#'   'metadata' table. If \code{NULL} (default), the function will search for a
+#'   meta-data record based on the file name of the input raster.
 #'
 #' @param protocol The name of a GDAL-supported virtual file system protocol
 #'   to use when accessing the raster file from storage. The default is
@@ -248,8 +259,9 @@ ldb_load_tile_metadata <- function(db,
 #'
 #' @param password User password. If \code{NULL}, this will automatically fall
 #'   back to the user's \code{pgpass.conf} file, if one exists, or the
-#'   \code{PGPASSWORD} environment variable. On a Windows client, the \code{pgpass.conf} file
-#'   in the directlry \code{~/AppData/Roaming/postgresql}.
+#'   \code{PGPASSWORD} environment variable. On a Windows client, the
+#'   \code{pgpass.conf} file in the directory
+#'   \code{~/AppData/Roaming/postgresql}.
 #'
 #' @export
 #'
@@ -259,7 +271,7 @@ fn_load_raster <- function(db,
                            raster_url,
                            strata_def = "cermb",
                            raster_crs = NULL,
-                           metadata_id = NULL,
+                           tile_id = NULL,
                            protocol = "vsicurl",
                            tilew = 256,
                            R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
@@ -319,88 +331,82 @@ fn_load_raster <- function(db,
     stop(msg)
   }
 
-  ZONE <- rcrs$zone
-  if (is.null(ZONE)) {
-    msg <- glue::glue("Cannot determine the map zone. Make sure that the
-                       raster is in a projected coordinate system supported by
-                       the database.")
-
-    stop(msg)
-  }
-
-  GDA <- stringr::str_extract(sf::st_as_text(rcrs),
-                              stringr::regex("GDA\\d+", ignore_case = TRUE)) %>%
-    stringr::str_extract("\\d+") %>%
-    as.integer()
-
-  ok <- (GDA %in% c(94, 2020)) && (ZONE %in% 55:56)
-  if (!ok) {
-    msg <- glue::glue("The raster does not appear to be in one of the GDA94 or GDA2020
-                       projected coordinate reference systems supported by the database.")
-    stop(msg)
-  }
-
   EPSG <- rcrs$epsg
-  if (is.na(EPSG)) {
-    msg <- glue::glue("Cannot determine the EPSG code for the raster's
-                       coordinate reference system.")
+
+  # Check that this projection is supported by the database and,
+  # if so, get the datum and zone.
+  cmd <- glue::glue("select datum, zone
+                     from supported_crs
+                     where srid = {EPSG};")
+
+  res <- dbGetQuery(db, cmd)
+  if (!nrow(res) == 1) {
+    msg <- glue::glue("The LiDAR tile coordinate reference system (EPSG:{epsgcode})
+                       is not (yet) supported by the database.")
+    stop(msg)
   }
+
+  ZONE <- res$zone
+  DATUM <- res$datum
 
   # Table name suffix
-  suffix <- glue::glue("gda{GDA}_zone{ZONE}")
+  suffix <- glue::glue("{tolower(DATUM)}_zone{ZONE}")
 
-  # Check for meta-data
+  # Check for meta-data record
   #
-  if (!(is.null(metadata_id) || is.na(metadata_id))) {
-    # metadata_id is provided: check that it exists in the database table
+  if (!(is.null(tile_id) || is.na(tile_id))) {
+    # tile_id was provided: check that it exists in the metadata table
     cmd <- glue::glue("select exists (
-                         select 1 from lidar.metadata_{suffix}
-                         where id = {metadata_id}
+                         select 1 from lidar.metadata
+                         where tile_id = {tile_id}
                        );")
 
     ok <- dbGetQuery(db, cmd)$exists
 
     if (!ok) {
-      msg <- glue::glue("No meta-data record was found in the table
-                         {metadata_{suffix} with id = {metadata_id}.")
+      msg <- glue::glue("No meta-data record was found with tile_id = {tile_id}.")
       stop(msg)
     }
+
   } else {
-    # metadata_id is not provided: try to find it by matching the input
+    # tile_id was not provided: try to find it by matching the input
     # raster file name
     fname <- fs::path_file(vsi_url) %>%
       fs::path_ext_remove(.)
 
-    cmd <- glue::glue("select id from lidar.metadata_{suffix}
-                       where filename = '{fname}';")
+    cmd <- glue::glue("select tile_id from lidar.metadata
+                       where filename = '{fname}' and
+                       datum = '{DATUM}' and
+                       zone = {ZONE};")
 
     res <- dbGetQuery(db, cmd)
 
     if (nrow(res) == 0) {
       msg <- glue::glue("No existing record was found that corresponds to this
-                         file name in the meta-data table metadata_{suffix}.")
+                         raster's file name and map projection in the meta-data table.")
       stop(msg)
 
     } else if (nrow(res) > 1) {
       msg <- glue::glue("More than one meta-data record found that corresponds
-                         to this file name in the meta-data table metadata_{suffix}.
+                         to this file name, datum and zone.
+
                          This should never happen! Please check the database.")
       stop(msg)
     }
 
-    metadata_id <- res$id
+    tile_id <- res$tile_id
   }
 
   # Check for an existing raster record
   cmd <- glue::glue("select exists(
                       select 1 from pointcounts_{suffix}
-                      where meta_id = {metadata_id}
+                      where tile_id = {tile_id}
                     )")
 
   res <- dbGetQuery(db, cmd)
   if (res$exists) {
     msg <- glue::glue("There is an existing raster record in the raster table
-                       pointcounts_{suffix} with a matching meta_id value ({metadata_id}).
+                       pointcounts_{suffix} with a matching tile_id value ({tile_id}).
                        Please check before proceeding further.")
     stop(msg)
   }
@@ -423,9 +429,9 @@ fn_load_raster <- function(db,
   # counts table for this map zone
 
   cmd <- glue::glue("
-    insert into lidar.pointcounts_{suffix} (strata_def, meta_id, rast)
-    select 'cermb_old' as strata_def,
-    {metadata_id} as meta_id,
+    insert into lidar.pointcounts_{suffix} (strata_def, tile_id, rast)
+    select '{strata_def}' as strata_def,
+    {tile_id} as tile_id,
     rast from lidar.temp_load;")
 
   res <- dbExecute(db, cmd)

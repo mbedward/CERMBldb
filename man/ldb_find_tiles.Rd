@@ -7,7 +7,7 @@
 ldb_find_tiles(db, x)
 }
 \arguments{
-\item{db}{A database connection}
+\item{db}{A database connection.}
 
 \item{x}{A spatial object with supported by the \code{sf} package: either an
 \code{sf} data frame or a \code{sfc} geometry list. The object must have a
@@ -15,14 +15,16 @@ coordinate reference system defined. It can contain one or more point, line
 or polygon features.}
 }
 \value{
-A data frame with columns 'meta_table' (name of metadata table),
-  'srid' (spatial reference identifier / EPSG code for each matching tile,
-  'id' (integer tile id, specific to the particular metadata table),
+A data frame with one row per matching LiDAR tile, and columns:
+  'tile_id' (unique integer identifier for the tile),
+  'datum' (original datum, either 'GDA94' or 'GDA2020'),
+  'zone' (MGA map zone, one of 54, 55 or 56),
+  'srid' (spatial reference identifier (EPSG code),
   'filename' (source file name for the LiDAR data),
-  'capture_year' (4-digit year number), 'point_density' (average density
-  across the tile expressed as points per square metre).
+  'capture_year' (4-digit year number),
+  'point_density' (average density across the tile expressed as points per square metre).
 }
 \description{
-Queries the metadata tables in the database to identify LiDAR tiles that
-intersect with the specified features.
+Queries the LiDAR tile metadata table ('lidar.metadata') in the database to
+identify tiles that intersect with the specified features.
 }

@@ -1,21 +1,23 @@
 #' Find LiDAR tiles that intersect with given features
 #'
-#' Queries the metadata tables in the database to identify LiDAR tiles that
-#' intersect with the specified features.
+#' Queries the LiDAR tile metadata table ('lidar.metadata') in the database to
+#' identify tiles that intersect with the specified features.
 #'
-#' @param db A database connection
+#' @param db A database connection.
 #'
 #' @param x A spatial object with supported by the \code{sf} package: either an
 #'   \code{sf} data frame or a \code{sfc} geometry list. The object must have a
 #'   coordinate reference system defined. It can contain one or more point, line
 #'   or polygon features.
 #'
-#' @return A data frame with columns 'meta_table' (name of metadata table),
-#'   'srid' (spatial reference identifier / EPSG code for each matching tile,
-#'   'id' (integer tile id, specific to the particular metadata table),
+#' @return A data frame with one row per matching LiDAR tile, and columns:
+#'   'tile_id' (unique integer identifier for the tile),
+#'   'datum' (original datum, either 'GDA94' or 'GDA2020'),
+#'   'zone' (MGA map zone, one of 54, 55 or 56),
+#'   'srid' (spatial reference identifier (EPSG code),
 #'   'filename' (source file name for the LiDAR data),
-#'   'capture_year' (4-digit year number), 'point_density' (average density
-#'   across the tile expressed as points per square metre).
+#'   'capture_year' (4-digit year number),
+#'   'point_density' (average density across the tile expressed as points per square metre).
 #'
 #' @export
 #'
@@ -36,48 +38,34 @@ ldb_find_tiles <- function(db, x) {
     x <- sf::st_geometry(x)
   }
 
-  # Get names of the metadata tables to query. Note: we exclude
-  # the 'metadata_combined' table.
+  # Get the metadata table CRS.
+  # PostGIS ST_Intersects assumes that both sets of features have the same
+  # coordinate ref system, so we have to transform the query features
+  # as required.
   #
-  cmd <- glue::glue("select table_name from information_schema.tables
-                     where table_schema = 'lidar' and
-                       table_name ~* '^metadata_((?!combined).)*$';")
+  cmd <- glue::glue("select ST_SRID(geom) as srid from metadata limit 1;")
 
-  mtbls <- DBI::dbGetQuery(db, cmd)
+  meta_srid <- DBI::dbGetQuery(db, cmd) %>%
+    dplyr::pull(srid)
 
-  # Query each metadata table
+  meta_crs <- sf::st_crs(meta_srid)
+
+  if (sf::st_crs(x) == meta_crs) {
+    xwkt <- sf::st_as_text(x, EWKT=TRUE)
+  } else {
+    xwkt <- sf::st_as_text( sf::st_transform(x, meta_crs), EWKT=TRUE )
+  }
+
+  # Do the intersection query
   #
-  res <- lapply(mtbls$table_name, function(tblname) {
-    # PostGIS ST_Intersects assumes that both sets of features have the same
-    # coordinate ref system, so transform the query features if required.
-    #
-    cmd <- glue::glue("select ST_SRID(geom) as srid from {tblname} limit 1;")
+  cmd <- glue::glue("select m.tile_id, m.datum, m.zone, s.srid,
+                     m.filename, m.capture_year, m.point_density
+                     from metadata m
+                     left join supported_crs s
+                     on m.datum = s.datum and m.zone = s.zone
+                     where ST_Intersects(geom, ST_GeomFromText('{xwkt}'));")
 
-    tbl_srid <- DBI::dbGetQuery(db, cmd) %>%
-      dplyr::pull(srid)
-
-    tbl_crs <- sf::st_crs(tbl_srid)
-
-    if (sf::st_crs(x) == tbl_crs) {
-      xwkt <- sf::st_as_text(x, EWKT=TRUE)
-    } else {
-      xwkt <- sf::st_as_text( sf::st_transform(x, tbl_crs), EWKT=TRUE )
-    }
-
-    # Do the intersection query
-    #
-    dplyr::tbl(db, tblname) %>%
-      dplyr::filter(ST_Intersects(geom, xwkt)) %>%
-      dplyr::collect() %>%
-
-      dplyr::mutate(meta_table = tblname,
-                    srid = tbl_srid) %>%
-
-      dplyr::select(meta_table, srid, id, filename, capture_year, point_density)
-  })
-
-  # Join results and return
-  do.call(rbind, res)
+  dbGetQuery(db, cmd)
 }
 
 
