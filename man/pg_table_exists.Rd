@@ -15,5 +15,5 @@ pg_table_exists(db, tablename)
 \code{TRUE} if the table was found; \code{FALSE} otherwise.
 }
 \description{
-Check if a table exists in the given database
+This is used as a helper function by other package functions.
 }

@@ -55,7 +55,7 @@ ldb_wake_up <- function(db, retry_seconds = 3, max_tries = 5) {
 #'
 #' @export
 #'
-db_creation_script <- function(dest = "dbcreate.sql") {
+ldb_creation_script <- function(dest = "dbcreate.sql") {
   ok <- file.copy(from = system.file("extdata", "create_database_and_tables.sql",
                                      package = "CERMBldb"),
                   to = dest,

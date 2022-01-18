@@ -267,18 +267,18 @@ ldb_load_tile_metadata <- function(db,
 #'
 # Function to load one or more rasters given the S3 URL for the GeoTIFF file(s)
 #
-fn_load_raster <- function(db,
-                           raster_url,
-                           strata_def = "cermb",
-                           raster_crs = NULL,
-                           tile_id = NULL,
-                           protocol = "vsicurl",
-                           tilew = 256,
-                           R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
-                           host = NULL,
-                           dbname = NULL,
-                           username = NULL,
-                           password = NULL) {
+ldb_load_pointcount_raster <- function(db,
+                                       raster_url,
+                                       strata_def = "cermb",
+                                       raster_crs = NULL,
+                                       tile_id = NULL,
+                                       protocol = "vsicurl",
+                                       tilew = 256,
+                                       R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
+                                       host = NULL,
+                                       dbname = NULL,
+                                       username = NULL,
+                                       password = NULL) {
 
   protocol <- stringr::str_trim(protocol[1])
   if (!grepl("^/", protocol)) protocol <- glue::glue("/{protocol}")
@@ -411,17 +411,20 @@ fn_load_raster <- function(db,
     stop(msg)
   }
 
+  x <- rlang::hash(Sys.time())
+  TEMP_LOAD_TABLE <- glue::glue("temp_load_{x}")
+
   # Use the command line raster2pgsql program to create the SQL
   # for the raster import
   fsql <- tempfile(pattern = "sql", fileext = ".txt")
 
   args <- glue::glue("-s {EPSG} -t {tilew}x{tilew} \\
                      -I -R {vsi_url} \\
-                     lidar.temp_load")
+                     lidar.{TEMP_LOAD_TABLE}")
 
   system2(command = R2P, args = args, stdout = fsql)
 
-  # Run the generated SQL to load the raster to the 'temp_load' table
+  # Run the generated SQL to load the raster to the temporary load table
   queries <- readLines(fsql)
   sapply(queries, function(q) dbExecute(db, q))
 
@@ -432,11 +435,11 @@ fn_load_raster <- function(db,
     insert into lidar.pointcounts_{suffix} (strata_def, tile_id, rast)
     select '{strata_def}' as strata_def,
     {tile_id} as tile_id,
-    rast from lidar.temp_load;")
+    rast from lidar.{TEMP_LOAD_TABLE};")
 
   res <- dbExecute(db, cmd)
 
-  dbExecute(db, "drop table lidar.temp_load;")
+  dbExecute(db, "drop table lidar.{TEMP_LOAD_TABLE};")
 
   if (!is.null(res) && res > 0) {
     TRUE
@@ -454,6 +457,8 @@ fn_load_raster <- function(db,
 
 
 #' Check if a table exists in the given database
+#'
+#' This is used as a helper function by other package functions.
 #'
 #' @param db An open database connection.
 #'
