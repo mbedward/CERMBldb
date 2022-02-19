@@ -340,7 +340,7 @@ ldb_load_pointcount_raster <- function(db,
                      where srid = {EPSG};")
 
   res <- dbGetQuery(db, cmd)
-  if (!nrow(res) == 1) {
+  if (nrow(res) != 1) {
     msg <- glue::glue("The LiDAR tile coordinate reference system (EPSG:{epsgcode})
                        is not (yet) supported by the database.")
     stop(msg)
@@ -439,7 +439,9 @@ ldb_load_pointcount_raster <- function(db,
 
   res <- dbExecute(db, cmd)
 
-  dbExecute(db, "drop table lidar.{TEMP_LOAD_TABLE};")
+  # Drop the temp load table
+  cmd <- glue::glue("drop table lidar.{TEMP_LOAD_TABLE};")
+  dbExecute(db, cmd)
 
   if (!is.null(res) && res > 0) {
     TRUE
