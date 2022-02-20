@@ -105,6 +105,10 @@ ldb_load_tile_metadata <- function(db,
 
     if (is.na(las.crs)) {
       stop("Cannot determine the coordinate reference system for the LAS object")
+
+    } else {
+      # Assign the CRS to the LAS object so that further steps (below) will work
+      lidR::crs(las) <- las.crs
     }
   }
 
