@@ -23,7 +23,7 @@ every \code{retry_seconds}, to wake the connection up. Note that this
 function will not re-open a connection that has been closed.
 }
 \examples{
-\dontrun {
+\dontrun{
 # After taking some minutes to read a very large LiDAR file...
 ldb_wake_up(DB)
 

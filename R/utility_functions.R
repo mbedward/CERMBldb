@@ -15,7 +15,7 @@
 #'   default is 5. Set to Inf for no limit.
 #'
 #' @examples
-#' \dontrun {
+#' \dontrun{
 #' # After taking some minutes to read a very large LiDAR file...
 #' ldb_wake_up(DB)
 #'

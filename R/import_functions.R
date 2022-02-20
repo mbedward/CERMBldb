@@ -51,6 +51,13 @@
 #' @param purpose Character value for the 'purpose' column of the database
 #'   table. Usually left as the default (\code{'general'}).
 #'
+#' @param crs_fallback The coordinate reference system to apply if one cannot be
+#'   retrieved from the input LAS object. This can either be an object of class
+#'   \code{'crs'} created with function \code{\link[sf]{st_crs}, an integer EPSG
+#'   code, or any spatial object from which a CRS can be extracted. The default
+#'   value \code{NULL}, or a missing value will cause the function to stop with
+#'   an error if the LAS object does not have a CRS.
+#'
 #' @return The integer value of the \code{'id'} field for the newly created
 #'   database record.
 #'
@@ -83,14 +90,22 @@ ldb_load_tile_metadata <- function(db,
                                    filename,
                                    mapname = NULL,
                                    provider = "nsw_ss",
-                                   purpose = "general") {
+                                   purpose = "general",
+                                   crs_fallback = NULL) {
 
   if (!ldb_is_connected(db)) stop("Database connection is not open")
 
   las.crs <- CERMBlidar::get_horizontal_crs(las)
 
   if (is.na(las.crs)) {
-    stop("Cannot determine the coordinate reference system for the LAS object")
+    # Try getting a CRS from the crs_fallback argument.
+    # This will result in an NA crs the arg is NULL.
+    #
+    las.crs <- CERMBlidar::get_horizontal_crs(crs_fallback)
+
+    if (is.na(las.crs)) {
+      stop("Cannot determine the coordinate reference system for the LAS object")
+    }
   }
 
   epsgcode <- las.crs$epsg

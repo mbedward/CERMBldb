@@ -10,7 +10,8 @@ ldb_load_tile_metadata(
   filename,
   mapname = NULL,
   provider = "nsw_ss",
-  purpose = "general"
+  purpose = "general",
+  crs_fallback = NULL
 )
 }
 \arguments{
