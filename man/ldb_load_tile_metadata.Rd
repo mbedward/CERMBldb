@@ -35,6 +35,13 @@ for NSW Spatial Services.}
 
 \item{purpose}{Character value for the 'purpose' column of the database
 table. Usually left as the default (\code{'general'}).}
+
+\item{crs_fallback}{The coordinate reference system to apply if one cannot be
+retrieved from the input LAS object. This can either be an object of class
+\code{'crs'} created with function \code{\link[sf]{st_crs}}, an integer EPSG
+code, or any spatial object from which a CRS can be extracted. The default
+value \code{NULL}, or a missing value will cause the function to stop with
+an error if the LAS object does not have a CRS.}
 }
 \value{
 The integer value of the \code{'id'} field for the newly created
