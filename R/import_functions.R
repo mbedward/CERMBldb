@@ -332,7 +332,7 @@ ldb_load_pointcount_raster <- function(db,
 
   nb <- terra::nlyr(r)
   if (nb != nrow(dat_strata)) {
-    msg <- glue::glue("Number of raster bands ({nbands}) does not correspond to
+    msg <- glue::glue("Number of raster bands ({nb}) does not correspond to
                        the strata definition '{strata_def}' which has {nrow(dat_strata)} levels.")
     stop(msg)
   }
