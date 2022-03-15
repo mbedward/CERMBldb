@@ -12,8 +12,7 @@ ldb_creation_script(dest = "dbcreate.sql")
 }
 \description{
 The package includes a copy of the SQL script used to create the
-PostgreSQL/PostGIS database structure that is assumed by the
-package functions. This function simply copies the script into
-a specified text file so that you can browse the code or use it
-to create your very own database.
+PostgreSQL/PostGIS database structure that is assumed by the package
+functions. This function simply copies the script into a specified text file
+so that you can browse the code or use it to create your very own database.
 }
