@@ -265,21 +265,6 @@ ldb_load_tile_metadata <- function(db,
 #'   If \code{NULL} or not found, the function will attempt to locate the
 #'   program on the client system.
 #'
-#' @param host Host/server on which the database resides. If \code{NULL}
-#'   (default), will be determined from the database connection object.
-#'
-#' @param dbname Database name. If \code{NULL} (default), will be determined
-#'   from the database connection object.
-#'
-#' @param user User name. If \code{NULL} (default), will be determined from the
-#'   database connection object.
-#'
-#' @param password User password. If \code{NULL}, this will automatically fall
-#'   back to the user's \code{pgpass.conf} file, if one exists, or the
-#'   \code{PGPASSWORD} environment variable. On a Windows client, the
-#'   \code{pgpass.conf} file in the directory
-#'   \code{~/AppData/Roaming/postgresql}.
-#'
 #' @export
 #'
 ldb_load_pointcount_raster <- function(db,
@@ -289,11 +274,7 @@ ldb_load_pointcount_raster <- function(db,
                                        tile_id = NULL,
                                        protocol = "vsicurl",
                                        tilew = 256,
-                                       R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
-                                       host = NULL,
-                                       dbname = NULL,
-                                       username = NULL,
-                                       password = NULL) {
+                                       R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe") {
 
   protocol <- stringr::str_trim(protocol[1])
   if (!grepl("^/", protocol)) protocol <- glue::glue("/{protocol}")
@@ -511,21 +492,6 @@ ldb_load_pointcount_raster <- function(db,
 #'   If \code{NULL} or not found, the function will attempt to locate the
 #'   program on the client system.
 #'
-#' @param host Host/server on which the database resides. If \code{NULL}
-#'   (default), will be determined from the database connection object.
-#'
-#' @param dbname Database name. If \code{NULL} (default), will be determined
-#'   from the database connection object.
-#'
-#' @param user User name. If \code{NULL} (default), will be determined from the
-#'   database connection object.
-#'
-#' @param password User password. If \code{NULL}, this will automatically fall
-#'   back to the user's \code{pgpass.conf} file, if one exists, or the
-#'   \code{PGPASSWORD} environment variable. On a Windows client, the
-#'   \code{pgpass.conf} file in the directory
-#'   \code{~/AppData/Roaming/postgresql}.
-#'
 #' @export
 #'
 ldb_load_vegheight_raster <- function(db,
@@ -534,11 +500,7 @@ ldb_load_vegheight_raster <- function(db,
                                       tile_id = NULL,
                                       protocol = "vsicurl",
                                       tilew = 256,
-                                      R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
-                                      host = NULL,
-                                      dbname = NULL,
-                                      username = NULL,
-                                      password = NULL) {
+                                      R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe") {
 
   protocol <- stringr::str_trim(protocol[1])
   if (!grepl("^/", protocol)) protocol <- glue::glue("/{protocol}")

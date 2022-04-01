@@ -11,11 +11,7 @@ ldb_load_vegheight_raster(
   tile_id = NULL,
   protocol = "vsicurl",
   tilew = 256,
-  R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe",
-  host = NULL,
-  dbname = NULL,
-  username = NULL,
-  password = NULL
+  R2P = "C:/Program Files/PostgreSQL/12/bin/raster2pgsql.exe"
 )
 }
 \arguments{
@@ -50,21 +46,6 @@ Postgis raster example} for more details.}
 \item{R2P}{The path to the Postgis command line program \code{raster2pgsql}.
 If \code{NULL} or not found, the function will attempt to locate the
 program on the client system.}
-
-\item{host}{Host/server on which the database resides. If \code{NULL}
-(default), will be determined from the database connection object.}
-
-\item{dbname}{Database name. If \code{NULL} (default), will be determined
-from the database connection object.}
-
-\item{password}{User password. If \code{NULL}, this will automatically fall
-back to the user's \code{pgpass.conf} file, if one exists, or the
-\code{PGPASSWORD} environment variable. On a Windows client, the
-\code{pgpass.conf} file in the directory
-\code{~/AppData/Roaming/postgresql}.}
-
-\item{user}{User name. If \code{NULL} (default), will be determined from the
-database connection object.}
 }
 \description{
 This function associates a single-band raster of vegetation height, usually
