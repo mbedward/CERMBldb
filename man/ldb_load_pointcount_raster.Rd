@@ -8,7 +8,7 @@ ldb_load_pointcount_raster(
   db,
   raster_url,
   strata_def = "cermb",
-  raster_crs = NULL,
+  crs_fallback = NULL,
   tile_id = NULL,
   protocol = "vsicurl",
   tilew = 256,
@@ -26,7 +26,7 @@ bucket.}
 database. Default to \code{'cermb'} which corresponds to
 \code{CERMBlidar::StrataCERMB}.}
 
-\item{raster_crs}{The coordinate reference system of the raster file in a
+\item{crs_fallback}{The coordinate reference system of the raster file in a
 form that can be understood by the \code{sf::st_crs()} function (e.g. a WKT
 string or an integer EPSG code. This is used to infer the name of the
 relevant meta-data and raster tables in the database. If \code{NULL}

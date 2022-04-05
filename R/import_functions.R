@@ -239,7 +239,7 @@ ldb_load_tile_metadata <- function(db,
 #'   database. Default to \code{'cermb'} which corresponds to
 #'   \code{CERMBlidar::StrataCERMB}.
 #'
-#' @param raster_crs The coordinate reference system of the raster file in a
+#' @param crs_fallback The coordinate reference system of the raster file in a
 #'   form that can be understood by the \code{sf::st_crs()} function (e.g. a WKT
 #'   string or an integer EPSG code. This is used to infer the name of the
 #'   relevant meta-data and raster tables in the database. If \code{NULL}
@@ -270,7 +270,7 @@ ldb_load_tile_metadata <- function(db,
 ldb_load_pointcount_raster <- function(db,
                                        raster_url,
                                        strata_def = "cermb",
-                                       raster_crs = NULL,
+                                       crs_fallback = NULL,
                                        tile_id = NULL,
                                        protocol = "vsicurl",
                                        tilew = 256,
@@ -299,6 +299,25 @@ ldb_load_pointcount_raster <- function(db,
   }
 
   r <- terra::rast(vsi_url)
+  rcrs <- sf::st_crs(r)
+
+  # Check CRS - sometimes reading via /vsicurl seems to lose
+  # the the CRS of the raster
+  #
+  if (is.na(sf::st_crs(r))) {
+    if (!is.null(crs_fallback)) {
+      rcrs <- sf::st_crs(crs_fallback)
+      terra::crs(r) <- sf::st_as_text(rcrs)
+    } else {
+      stop("Raster has no CRS defined and no crs_fallback value was provided")
+    }
+  }
+
+  if (rcrs$IsGeographic) {
+    msg <- glue::glue("The raster is in a geographic coordinate system but needs
+                       to be in a projected coordinate system supported by the database.")
+    stop(msg)
+  }
 
   # Check that the number of layers corresponds to the
   # strata definition
@@ -318,19 +337,10 @@ ldb_load_pointcount_raster <- function(db,
     stop(msg)
   }
 
-
-  rcrs <- sf::st_crs(r)
-
-  if (rcrs$IsGeographic) {
-    msg <- glue::glue("The raster is in a geographic coordinate system but needs
-                       to be in a projected coordinate system supported by the database.")
-    stop(msg)
-  }
-
-  EPSG <- rcrs$epsg
-
   # Check that this projection is supported by the database and,
   # if so, get the datum and zone.
+  EPSG <- rcrs$epsg
+
   cmd <- glue::glue("select datum, zone
                      from supported_crs
                      where srid = {EPSG};")
@@ -466,7 +476,7 @@ ldb_load_pointcount_raster <- function(db,
 #' @param raster_url A URL giving the file location, e.g. in an accessible S3
 #'   bucket.
 #'
-#' @param raster_crs The coordinate reference system of the raster file in a
+#' @param crs_fallback The coordinate reference system of the raster file in a
 #'   form that can be understood by the \code{sf::st_crs()} function (e.g. a WKT
 #'   string or an integer EPSG code. This is used to infer the name of the
 #'   relevant meta-data and raster tables in the database. If \code{NULL}
@@ -496,7 +506,7 @@ ldb_load_pointcount_raster <- function(db,
 #'
 ldb_load_vegheight_raster <- function(db,
                                       raster_url,
-                                      raster_crs = NULL,
+                                      crs_fallback = NULL,
                                       tile_id = NULL,
                                       protocol = "vsicurl",
                                       tilew = 256,
@@ -527,16 +537,28 @@ ldb_load_vegheight_raster <- function(db,
   r <- terra::rast(vsi_url)
   rcrs <- sf::st_crs(r)
 
+  # Check CRS - sometimes reading via /vsicurl seems to lose
+  # the the CRS of the raster
+  #
+  if (is.na(sf::st_crs(r))) {
+    if (!is.null(crs_fallback)) {
+      rcrs <- sf::st_crs(crs_fallback)
+      terra::crs(r) <- sf::st_as_text(rcrs)
+    } else {
+      stop("Raster has no CRS defined and no crs_fallback value was provided")
+    }
+  }
+
   if (rcrs$IsGeographic) {
     msg <- glue::glue("The raster is in a geographic coordinate system but needs
                        to be in a projected coordinate system supported by the database.")
     stop(msg)
   }
 
-  EPSG <- rcrs$epsg
-
   # Check that this projection is supported by the database and,
   # if so, get the datum and zone.
+  EPSG <- rcrs$epsg
+
   cmd <- glue::glue("select datum, zone
                      from supported_crs
                      where srid = {EPSG};")
