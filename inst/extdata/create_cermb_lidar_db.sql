@@ -225,7 +225,7 @@ CREATE OR REPLACE FUNCTION check_strata_def(strata_def text, rast raster, is_veg
 ALTER FUNCTION lidar.check_strata_def
 	OWNER TO postgres;
 
-GRANT ALL ON FUNCTION lidar.check_datum_zone TO postgres;
+GRANT ALL ON FUNCTION lidar.check_strata_def TO postgres;
 
 
 ------------------------------------------------------------
@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS lidar.vegcover_gda2020_zone55 (
 	rast raster,
 
 	CONSTRAINT vegcover_gda2020_zone55_datum_zone
-		CHECK (check_datum_zone(tile_id, datum => 'gda2020', zone => 55)),
+		CHECK (check_datum_zone(tile_id, datum => 'GDA2020', zone => 55)),
 
 	CONSTRAINT vegcover_gda2020_zone55_strata_def
 		CHECK (check_strata_def(strata_def, rast, is_veg => true))
