@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS lidar.metadata (
 	area_m2 numeric NOT NULL CHECK (area_m2 > 0),
 	capture_year integer NOT NULL CHECK (capture_year >= 2000),
 	capture_start timestamp without time zone NOT NULL,
-	capture_end timestamp without time zone NOT NULL CHECK (capture_end > capture_start),
+	capture_end timestamp without time zone NOT NULL CHECK (capture_end >= capture_start),
 	nflightlines integer NOT NULL CHECK (nflightlines >= 0),
 	npts_ground integer NOT NULL CHECK (npts_ground >= 0),
 	npts_veg integer NOT NULL CHECK (npts_veg >= 0),
