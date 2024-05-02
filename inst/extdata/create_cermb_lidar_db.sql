@@ -749,3 +749,25 @@ BEGIN
 END
 $$ LANGUAGE plpgsql;
 
+
+-- Function to send a notification to QGIS when the metadata table is updated
+-- so that layers being displayed in QGIS can auto-refresh.
+--
+CREATE FUNCTION lidar.notify_qgis() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$ 
+        BEGIN NOTIFY qgis;
+        RETURN NULL;
+        END; 
+    $$;
+
+ALTER FUNCTION lidar.notify_qgis()
+    OWNER TO postgres;
+
+COMMENT ON FUNCTION lidar.notify_qgis()
+    IS 'Send a notification to QGIS when the metadata table is updated';
+
+-- Attach a trigger to the metadata table to use the above function
+CREATE TRIGGER notify_qgis_edit 
+  AFTER INSERT OR UPDATE OR DELETE ON lidar.metadata 
+    FOR EACH STATEMENT EXECUTE PROCEDURE lidar.notify_qgis();
